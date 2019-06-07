@@ -4,11 +4,15 @@ This page gives a few tips for those having difficulties using one of
 these installation scripts to install the open source P4 development
 tools:
 
-+ [install-p4dev.sh](install-p4dev.sh)
-+ [install-p4dev-p4runtime.sh](install-p4dev-p4runtime.sh)
++ [install-p4dev-p4runtime.sh](install-p4dev-p4runtime.sh) - If you
+  want to use the P4Runtime API from controller software to configure
+  the P4 program tables.
++ [install-p4dev.sh](install-p4dev.sh) - If you do not want to bother
+  installing the P4Runtime API software, and can get by with older
+  controller APIs, e.g. the API based upon Thrift.
 
 I have most recently tested them and found them working on
-2019-Jan-06.
+2019-Mar-14.
 
 Things I did that helped this process go smoothly:
 
@@ -29,7 +33,7 @@ Things I did that helped this process go smoothly:
   different host operating system, or on a bare machine, should also
   work:
   + [Ubuntu Desktop 18.04.1](http://releases.ubuntu.com/18.04.1/ubuntu-18.04.1-desktop-amd64.iso) for the amd64 architecture
-  + [Ubuntu Desktop 16.04.5](http://releases.ubuntu.com/16.04/ubuntu-16.04.5-desktop-amd64.iso) for the adm64 architecture
+  + [Ubuntu Desktop 16.04.5](http://releases.ubuntu.com/16.04/ubuntu-16.04.5-desktop-amd64.iso) for the amd64 architecture
 + My machine had 4 GBytes of RAM available.  Less than 2 Gbytes will
   almost certainly not be enough.
 + My machine had at least 10 Gbytes of free disk space before the
@@ -48,14 +52,14 @@ Things I did that helped this process go smoothly:
   of the scripts -- some occur near the end of running the script.
 
 Below are the commands I ran in a terminal window, after booting up
-the fresh Ubuntu Linux installation.  Replace `install-p4dev.sh` with
-`install-p4dev-p4runtime.sh` if you want to install the P4Runtime
-software, too.
+the fresh Ubuntu Linux installation.  Replace
+`install-p4dev-p4runtime.sh` with `install-p4dev.sh` if you do not
+want to install the P4Runtime software.
 
 ```
 $ sudo apt install git
 $ git clone https://github.com/jafingerhut/p4-guide
-$ ./p4-guide/bin/install-p4dev.sh |& tee log.txt
+$ ./p4-guide/bin/install-p4dev-p4runtime.sh |& tee log.txt
 ```
 
 The `|& tee log.txt` part of the command is not necessary for the

@@ -58,14 +58,14 @@ echo "compiler, and the behavioral-model software packet forwarding"
 echo "program, that can behave as just about any legal P4 program."
 echo ""
 echo "It has been tested on a freshly installed Ubuntu 16.04 system,"
-echo "with all Ubuntu software updates as of 2019-Jan-29, and a"
+echo "with all Ubuntu software updates as of 2019-May-20, and a"
 echo "similarly updated Ubuntu 18.04 system."
 echo ""
 echo "The files installed by this script consume about 7 GB of disk space."
 echo ""
 echo "On a 2015 MacBook Pro with a decent speed Internet connection"
 echo "and an SSD drive, running Ubuntu Linux in a VirtualBox VM, it"
-echo "took 48 minutes."
+echo "took about 55 minutes."
 echo ""
 echo "You will likely need to enter your password for multiple uses of"
 echo "'sudo' spread throughout this script."
@@ -81,7 +81,7 @@ echo "+ behavioral-model: github.com/p4lang/behavioral-model latest version"
 echo "  which, as of 2019-Jan-13, also installs these things:"
 echo "  + thrift version 0.9.2"
 echo "  + nanomsg version 1.0.0"
-echo "  + nnpy git checkout c7e718a5173447c85182dc45f99e2abcf9cd4065"
+echo "  + nnpy git checkout c7e718a5173447c85182dc45f99e2abcf9cd4065 (latest as of 2015-Apr-22"
 echo "+ p4c: github.com/p4lang/p4c latest version"
 echo "+ Python packages: grpcio, protobuf, latest versions"
 echo ""
@@ -105,9 +105,19 @@ df -BM .
 # my own convenience):
 sudo apt-get --yes install git vim
 
+# Install Python2.  This is required for p4c, but there are several
+# earlier packages that check for python in their configure scripts,
+# and on a minimal Ubuntu 18.04 Desktop Linux system they find
+# Python3, not Python2, unless we install Python2.  Most Python code
+# in open source P4 projects is written for Python2.
+sudo apt-get --yes install python
 
 # Install Ubuntu packages needed by protobuf v3.2.0, from its src/README.md
 sudo apt-get --yes install autoconf automake libtool curl make g++ unzip
+# zlib is not required to install protobuf, nor do I think it is
+# required by the open source P4 tools for protobuf to be built with
+# support for zlib, but it seems like a reasonable thing to enable.
+sudo apt-get --yes install zlib1g-dev
 
 # Install pkg-config here, as it is required for p4lang/PI
 # installation to succeed.

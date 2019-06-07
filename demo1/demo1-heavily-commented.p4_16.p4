@@ -47,20 +47,20 @@ limitations under the License.
  * choose.  The name used in this program for that piece is given in
  * parentheses:
  *
- * + a parser (ParserImpl)
+ * + a parser (parserImpl)
  * + a specialized control block intended for verifying checksums
  *   in received headers (verifyChecksum)
- * + ingress match-action pipeline (ingress)
+ * + ingress match-action pipeline (ingressImpl)
  *
  * Then there is a packet replication engine and packet buffer, which
  * are not P4-programmable.
  *
  * Egress consists of these things, programmed in P4:
  *
- * + egress match-action pipeline (egress)
+ * + egress match-action pipeline (egressImpl)
  * + a specialized control block intended for computing checksums in
- *   transmitted headers (computeChecksum)
- * + deparser (also called rewrite in some networking chips, DeparserImpl)
+ *   transmitted headers (updateChecksum)
+ * + deparser (also called rewrite in some networking chips, deparserImpl)
  */
 
 #include <v1model.p4>
@@ -141,48 +141,25 @@ struct fwd_metadata_t {
  * completely up to you.  Similarly the struct type names 'metadata'
  * and 'headers' below can be anything you want to name them. */
 
-struct metadata {
+struct metadata_t {
     fwd_metadata_t fwd_metadata;
 }
 
-struct headers {
+struct headers_t {
     ethernet_t ethernet;
     ipv4_t     ipv4;
 }
 
-
-/* Why bother creating an action that just does one primitive action?
- * That is, why not just use 'mark_to_drop' as one of the possible
- * actions when defining a table?  Because the P4_16 compiler does not
- * allow primitive actions to be used directly as actions of tables.
- * You must use 'compound actions', i.e. ones explicitly defined with
- * the 'action' keyword like below.
- *
- * mark_to_drop() is an extern function defined in v1model.h,
- * implemented in the behavioral model by setting an appropriate
- * 'intrinsic metadata' field with a code indicating the packet should
- * be dropped.
- *
- * See the following page if you are interestd in more detailed
- * documentation on the behavior of mark_to_drop and several other
- * operations in the v1model architecture, as implemented in the open
- * source behavioral-model BMv2 software switch:
- * https://github.com/p4lang/behavioral-model/blob/master/docs/simple_switch.md
- */
-
-action my_drop() {
-    mark_to_drop();
-}
 
 /* The ingress parser here is pretty simple.  It assumes every packet
  * starts with a 14-byte Ethernet header, and if the ether type is
  * 0x0800, it proceeds to parse the 20-byte mandatory part of an IPv4
  * header, ignoring whether IPv4 options might be present. */
 
-parser ParserImpl(packet_in packet,
-                  out headers hdr,
-                  inout metadata meta,
-                  inout standard_metadata_t standard_metadata)
+parser parserImpl(packet_in packet,
+                  out headers_t hdr,
+                  inout metadata_t meta,
+                  inout standard_metadata_t stdmeta)
 {
     /* The notation <decimal number>w<something> means that the
      * <something> represents a constant unsigned integer value.  The
@@ -252,9 +229,33 @@ parser ParserImpl(packet_in packet,
  * The ingress match-action pipeline specified here is very small --
  * simply 2 tables applied in sequence, each with simple actions. */
 
-control ingress(inout headers hdr,
-                inout metadata meta,
-                inout standard_metadata_t standard_metadata) {
+control ingressImpl(inout headers_t hdr,
+                    inout metadata_t meta,
+                    inout standard_metadata_t stdmeta)
+{
+    /*
+     * Why bother creating an action that just does one primitive
+     * action?  That is, why not just use 'mark_to_drop' as one of the
+     * possible actions when defining a table?  Because the P4_16
+     * compiler does not allow primitive actions to be used directly
+     * as actions of tables.  You must use 'compound actions',
+     * i.e. ones explicitly defined with the 'action' keyword like
+     * below.
+     *
+     * mark_to_drop is an extern function defined in v1model.h,
+     * implemented in the behavioral model by setting an appropriate
+     * 'standard metadata' field with a code indicating the packet
+     * should be dropped.
+     *
+     * See the following page if you are interested in more detailed
+     * documentation on the behavior of mark_to_drop and several other
+     * operations in the v1model architecture, as implemented in the
+     * open source behavioral-model BMv2 software switch:
+     * https://github.com/p4lang/behavioral-model/blob/master/docs/simple_switch.md
+     */
+    action my_drop() {
+        mark_to_drop(stdmeta);
+    }
 
     /* Note that there is no direction 'in', 'out', or 'inout' given
      * for the l2ptr parameter for action set_l2ptr.  Such
@@ -333,7 +334,7 @@ control ingress(inout headers hdr,
     action set_bd_dmac_intf(bit<24> bd, bit<48> dmac, bit<9> intf) {
         meta.fwd_metadata.out_bd = bd;
         hdr.ethernet.dstAddr = dmac;
-        standard_metadata.egress_spec = intf;
+        stdmeta.egress_spec = intf;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
     table mac_da {
@@ -367,10 +368,13 @@ control ingress(inout headers hdr,
 /* The egress match-action pipeline is even simpler than the one for
  * ingress -- just one table that can overwrite the packet's source
  * MAC address depending on its out_bd metadata field value. */
-control egress(inout headers hdr,
-               inout metadata meta,
-               inout standard_metadata_t standard_metadata)
+control egressImpl(inout headers_t hdr,
+                   inout metadata_t meta,
+                   inout standard_metadata_t stdmeta)
 {
+    action my_drop() {
+        mark_to_drop(stdmeta);
+    }
     action rewrite_mac(bit<48> smac) {
         hdr.ethernet.srcAddr = smac;
     }
@@ -392,7 +396,9 @@ control egress(inout headers hdr,
 
 /* The deparser controls what headers are created for the outgoing
  * packet. */
-control DeparserImpl(packet_out packet, in headers hdr) {
+control deparserImpl(packet_out packet,
+                     in headers_t hdr)
+{
     apply {
         /* The emit() method takes a header.  If that header's hidden
          * 'valid' bit is true, then emit() appends the contents of
@@ -426,7 +432,7 @@ control DeparserImpl(packet_out packet, in headers hdr) {
  * already-parsed packet, and can modify metadata fields with the
  * results of those checks, e.g. to set error flags, increment error
  * counts, drop the packet, etc. */
-control verifyChecksum(inout headers hdr, inout metadata meta) {
+control verifyChecksum(inout headers_t hdr, inout metadata_t meta) {
     apply {
         /* The verify_checksum() extern function is declared in
          * v1model.p4.  Its behavior is implementated in the target,
@@ -456,14 +462,14 @@ control verifyChecksum(inout headers hdr, inout metadata meta) {
          *
          * In September 2018, the simple_switch process in the
          * p4lang/behavioral-model Github repository was enhanced so
-         * that it initializes the value of
-         * standard_metadata.checksum_error to 0 for all received
-         * packets, and if any call to verify_checksum() with a first
-         * parameter of true finds an incorrect checksum value, it
-         * assigns 1 to the checksum_error field.  This field can be
-         * read in your ingress control block code, e.g. using it in
-         * an 'if' condition to choose to drop the packet.  This
-         * example program does not demonstrate that.
+         * that it initializes the value of stdmeta.checksum_error to
+         * 0 for all received packets, and if any call to
+         * verify_checksum() with a first parameter of true finds an
+         * incorrect checksum value, it assigns 1 to the
+         * checksum_error field.  This field can be read in your
+         * ingress control block code, e.g. using it in an 'if'
+         * condition to choose to drop the packet.  This example
+         * program does not demonstrate that.
          */
         verify_checksum(hdr.ipv4.isValid() && hdr.ipv4.ihl == 5,
             { hdr.ipv4.version,
@@ -485,7 +491,7 @@ control verifyChecksum(inout headers hdr, inout metadata meta) {
  * block that comes after the egress match-action pipeline, before the
  * deparser, that can be used to calculate checksums for the outgoing
  * packet. */
-control computeChecksum(inout headers hdr, inout metadata meta) {
+control updateChecksum(inout headers_t hdr, inout metadata_t meta) {
     apply {
         /* update_checksum() is declared in v1model.p4, and its
          * arguments are similar to verify_checksum() above.  The
@@ -514,9 +520,9 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
  * which pieces to plug into which "slot" in the target
  * architecture. */
 
-V1Switch(ParserImpl(),
+V1Switch(parserImpl(),
          verifyChecksum(),
-         ingress(),
-         egress(),
-         computeChecksum(),
-         DeparserImpl()) main;
+         ingressImpl(),
+         egressImpl(),
+         updateChecksum(),
+         deparserImpl()) main;

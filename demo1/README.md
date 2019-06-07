@@ -8,6 +8,11 @@ To compile the P4_16 version of the code:
     p4c --target bmv2 --arch v1model demo1.p4_16.p4
                                      ^^^^^^^^^^^^^^ source code
 
+If you see an error message about `mark_to_drop: Passing 1 arguments
+when 0 expected`, then see
+[`README-troubleshooting.md`](../README-troubleshooting.md#compiler-gives-error-message-about-mark_to_drop)
+for what to do.
+
 Running that command will create these files:
 
     demo1.p4_16.p4i - the output of running only the preprocessor on
@@ -106,16 +111,17 @@ You can examine the existing entries in a table with 'table_dump':
     Dumping entry 0x0
     Match key:
     * ipv4.dstAddr        : LPM       0a010001/32
-    Action entry: set_l2ptr - 3a
+    Action entry: ingressImpl.set_l2ptr - 3a
     **********
     Dumping entry 0x1
     Match key:
     * ipv4.dstAddr        : LPM       0a0100c8/32
-    Action entry: set_l2ptr - 3a
+    Action entry: ingressImpl.set_l2ptr - 51
     ==========
     Dumping default entry
-    Action entry: my_drop - 
+    Action entry: ingressImpl.my_drop - 
     ==========
+
 
 The numbers on the "Dumping entry <number>" lines are 'table entry
 handle ids'.  The table API implementation allocates a unique handle
@@ -135,17 +141,21 @@ Any process that you want to have permission to send and receive
 packets on Ethernet interfaces (such as the veth virtual interfaces)
 must run as the super-user root, hence the use of `sudo`:
 
-    sudo scapy
+```bash
+$ sudo scapy
+```
 
-    fwd_pkt1=Ether() / IP(dst='10.1.0.1') / TCP(sport=5793, dport=80)
-    drop_pkt1=Ether() / IP(dst='10.1.0.34') / TCP(sport=5793, dport=80)
+```python
+fwd_pkt1=Ether() / IP(dst='10.1.0.1') / TCP(sport=5793, dport=80)
+drop_pkt1=Ether() / IP(dst='10.1.0.34') / TCP(sport=5793, dport=80)
 
-    # Send packet at layer2, specifying interface
-    sendp(fwd_pkt1, iface="veth2")
-    sendp(drop_pkt1, iface="veth2")
+# Send packet at layer2, specifying interface
+sendp(fwd_pkt1, iface="veth2")
+sendp(drop_pkt1, iface="veth2")
 
-    fwd_pkt2=Ether() / IP(dst='10.1.0.1') / TCP(sport=5793, dport=80) / Raw('The quick brown fox jumped over the lazy dog.')
-    sendp(fwd_pkt2, iface="veth2")
+fwd_pkt2=Ether() / IP(dst='10.1.0.1') / TCP(sport=5793, dport=80) / Raw('The quick brown fox jumped over the lazy dog.')
+sendp(fwd_pkt2, iface="veth2")
+```
 
 ----------------------------------------
 
@@ -173,3 +183,26 @@ fields explicitly mentioned:
 
     output port: <out_intf>
     Ether(src=<smac>, dst=<dmac>) / IP(dst=<hdr.ipv4.dstAddr>, ttl=<ttl>-1)
+
+
+----------------------------------------
+
+# Last successfully tested with these software versions
+
+For https://github.com/p4lang/p4c
+
+```
+$ git log -n 1 | head -n 3
+commit aa60b26b03f5ada7114e468741358320df13ef51
+Author: Andy Fingerhut <andy_fingerhut@alum.wustl.edu>
+Date:   Fri May 10 13:06:19 2019 -0700
+```
+
+For https://github.com/p4lang/behavioral-model
+
+```
+$ git log -n 1 | head -n 3
+commit 25d0d747d57662d2fc1cfde2118620f80bf6d139
+Author: Andy Fingerhut <andy_fingerhut@alum.wustl.edu>
+Date:   Mon May 6 11:11:07 2019 -0700
+```

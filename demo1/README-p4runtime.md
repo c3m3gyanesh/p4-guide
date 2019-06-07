@@ -5,7 +5,7 @@ that are common across different P4 programs executed using bmv2.
 
 To compile the P4_16 version of the code, in file `demo1.p4_16.p4`:
 
-    p4c --target bmv2 --arch v1model --p4runtime-file demo1.p4_16.p4rt.txt --p4runtime-format text demo1.p4_16.p4
+    p4c --target bmv2 --arch v1model --p4runtime-files demo1.p4_16.p4rt.txt demo1.p4_16.p4
 
 Running that command will create these files:
 
@@ -51,9 +51,12 @@ provided install script.  You can create a brand new clone of the
 
     sudo $P4_INSTALL/PI/proto/sysrepo/install_yangs.sh
 
-Note: It is _normal_ to see many error messages in the window where
-you started `sysrepod` when this command is run.  To check whether the
-command had the intended side effect, run this command:
+Note: It is _normal_ to see many error (`[ERR]`) and warning (`[WRN]`)
+messages in the window where you started `sysrepod`, and many
+`Resolving dependency` and `Skipping installation of ...` messages in
+the window where you ran the `install_yangs.sh` command, when the
+command above is run.  To check whether the command had the intended
+side effect, run this command:
 
     sysrepoctl -l
 
@@ -73,9 +76,9 @@ To get the log to go to a file instead of the console:
     sudo simple_switch_grpc --log-file ss-log --log-flush -i 0@veth2 -i 1@veth4 -i 2@veth6 -i 3@veth8 -i 4@veth10 -i 5@veth12 -i 6@veth14 -i 7@veth16 --no-p4
 
 CHECK THIS: If you see "Add port operation failed" messages in the
-output of the simple_switch_grpc command, it means that one or more of the
-virtual Ethernet interfaces veth2, veth4, etc. have not been created
-on your system.  Search for "veth" in the file
+output of the `simple_switch_grpc` command, it means that one or more
+of the virtual Ethernet interfaces veth2, veth4, etc. have not been
+created on your system.  Search for "veth" in the file
 [`README-using-bmv2.md`](../README-using-bmv2.md`) (top level
 directory of this repository) for a command to create them.
 
@@ -227,13 +230,21 @@ interface:
 h.table_add(ipv4_da_lpm_key(h, '10.1.0.200', 32), set_l2ptr(81))
 h.table_add(mac_da_key(h, 81), set_bd_dmac_intf(15, '08:de:ad:be:ef:00', 4))
 h.table_add(send_frame_key(h, 15), rewrite_mac('ca:fe:ba:be:d0:0d'))
+
+# There is preliminary support for reading the entries of a table that
+# you can try like this, but right now it prints the P4Runtime
+# messages returned without performing any translation of table,
+# search key field, action, or parameter ids to the corresponding
+# names, so it is not very convenient.
+
+# If someone wants to beat me to implementing such a thing, take a
+# look at the code in base_test.py, especially the table_dump_data
+# method.
+
+h.table_dump_data('ipv4_da_lpm')
 ```
 
-TBD: Let me know if you find a way to read table entries using the
-P4Runtime API via the interactive Python session created above.  There
-must be a way.
-
-Until then, you can examine the existing entries in a table using the
+You can also examine the existing entries in a table using the
 `simple_switch_CLI` command (best from a separate terminal window)
 with the 'table_dump' command:
 
@@ -275,8 +286,8 @@ Any process that you want to have permission to send and receive
 packets on Ethernet interfaces (such as the veth virtual interfaces)
 must run as the super-user root, hence the use of `sudo`:
 
-```base
-sudo scapy
+```bash
+$ sudo scapy
 ```
 
 ```python

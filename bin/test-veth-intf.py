@@ -11,7 +11,7 @@ import threading
 try:
     from scapy.all import sniff, sendp, Ether, IP, UDP
 except:
-    print("Install Scapy.  On Ubuntu 16.04: 'sudo apt install python-scapy'")
+    print("Install Scapy.  On Ubuntu 16.04 or 18.04: 'sudo apt install python-scapy'")
     sys.exit(1)
 
 def clean_veth_pair(veth0, veth1):
@@ -65,20 +65,20 @@ def create_and_cfg_veth_intf(intf_name, peer_intf_name):
     print("Interface creation done.")
 
 
-def sniff_record(queue, intf_name):
+def sniff_record(q, intf_name):
     print("sniff start")
     pkts = sniff(timeout=3, iface=intf_name)
     print("sniff stop returned %d packet" % (len(pkts)))
-    queue.put(pkts)
+    q.put(pkts)
 
 def send_pkts_and_capture(intf_name, packet_list):
     '''Send packets in list `port_packet_list` to simple_switch
     process, while capturing packets sent to simple_switch, and
     output by simple_switch, by Scapy sniff() call.'''
 
-    queue = Queue.Queue()
+    q = Queue.Queue()
     thd = threading.Thread(name="sniff_thread",
-                           target=lambda: sniff_record(queue, intf_name))
+                           target=lambda: sniff_record(q, intf_name))
     thd.start()
 
     # The time.sleep() call here gives time for thread 'thd' to start
@@ -89,7 +89,7 @@ def send_pkts_and_capture(intf_name, packet_list):
     for pkt in packet_list:
         sendp(pkt, iface=intf_name)
     thd.join()
-    captured_pkt_list = queue.get(True)
+    captured_pkt_list = q.get(True)
 #    for pkt in captured_pkt_list:
 #        print("dbg pkt.sniffed_on=%s" % (pkt.sniffed_on))
 #        assert pkt.sniffed_on == intf_name

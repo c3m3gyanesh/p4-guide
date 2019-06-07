@@ -1,0 +1,164 @@
+{
+  "header_types" : [
+    {
+      "name" : "ethernet_t",
+      "id" : 0,
+      "fields" : [
+        ["dstAddr", 48, false],
+        ["srcAddr", 48, false],
+        ["etherType", 16, false]
+      ]
+    }
+  ],
+  "headers" : [
+    {
+      "name" : "ethernet",
+      "id" : 0,
+      "header_type" : "ethernet_t",
+      "metadata" : false,
+      "pi_omit" : true
+    }
+  ],
+  "header_stacks" : [],
+  "header_union_types" : [],
+  "header_unions" : [],
+  "header_union_stacks" : [],
+  "field_lists" : [],
+  "errors" : [],
+  "enums" : [],
+  "parsers" : [
+    {
+      "name" : "ingress_parser",
+      "id" : 0,
+      "init_state" : "start",
+      "parse_states" : [
+        {
+          "name" : "start",
+          "id" : 0,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "ethernet"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        }
+      ]
+    },
+    {
+      "name" : "egress_parser",
+      "id" : 1,
+      "init_state" : "start",
+      "parse_states" : [
+        {
+          "name" : "start",
+          "id" : 1,
+          "parser_ops" : [],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        }
+      ]
+    }
+  ],
+  "parse_vsets" : [],
+  "deparsers" : [
+    {
+      "name" : "ingress_deparser",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "psa-indexed-counter.p4",
+        "line" : 99,
+        "column" : 8,
+        "source_fragment" : "IngressDeparserImpl"
+      },
+      "order" : ["ethernet"]
+    },
+    {
+      "name" : "egress_deparser",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "psa-indexed-counter.p4",
+        "line" : 113,
+        "column" : 8,
+        "source_fragment" : "EgressDeparserImpl"
+      },
+      "order" : ["ethernet"]
+    }
+  ],
+  "meter_arrays" : [],
+  "counter_arrays" : [
+    {
+      "name" : "cIngress.my_pkt_counts",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "psa-indexed-counter.p4",
+        "line" : 57,
+        "column" : 62,
+        "source_fragment" : "my_pkt_counts"
+      },
+      "size" : 256,
+      "is_direct" : false
+    }
+  ],
+  "register_arrays" : [],
+  "calculations" : [],
+  "learn_lists" : [],
+  "actions" : [],
+  "pipelines" : [
+    {
+      "name" : "ingress",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "psa-indexed-counter.p4",
+        "line" : 52,
+        "column" : 8,
+        "source_fragment" : "cIngress"
+      },
+      "init_table" : null,
+      "tables" : [],
+      "action_profiles" : [],
+      "conditionals" : []
+    },
+    {
+      "name" : "egress",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "psa-indexed-counter.p4",
+        "line" : 83,
+        "column" : 8,
+        "source_fragment" : "cEgress"
+      },
+      "init_table" : null,
+      "tables" : [],
+      "action_profiles" : [],
+      "conditionals" : []
+    }
+  ],
+  "checksums" : [],
+  "force_arith" : [],
+  "extern_instances" : [],
+  "field_aliases" : [],
+  "program" : "psa-indexed-counter.p4",
+  "__meta__" : {
+    "version" : [2, 18],
+    "compiler" : "https://github.com/p4lang/p4c"
+  }
+}
